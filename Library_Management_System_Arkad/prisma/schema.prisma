@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String
+  email         String         @unique
+  password      String
+  studentId     String?        @unique
+  role          Role
+  branchId      String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  isActive      Boolean        @default(true)
+  branch        Branch?        @relation(fields: [branchId], references: [id])
+  borrows       Borrow[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+  reservations  Reservation[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  books     Book[]
+}
+
+model Publisher {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  books     Book[]
+}
+
+model Author {
+  id        String       @id @default(cuid())
+  name      String
+  createdAt DateTime     @default(now())
+  books     BookAuthor[]
+}
+
+model BookAuthor {
+  bookId   String
+  authorId String
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, authorId])
+}
+
+model Book {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  isbn         String        @unique
+  coverImage   String?
+  categoryId   String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  publisherId  String?
+  category     Category      @relation(fields: [categoryId], references: [id])
+  publisher    Publisher?    @relation(fields: [publisherId], references: [id])
+  authors      BookAuthor[]
+  copies       Copy[]
+  reservations Reservation[]
+}
+
+model Copy {
+  id               String        @id @default(cuid())
+  barcode          String        @unique
+  condition        CopyCondition @default(GOOD)
+  shelfLocation    String?
+  status           CopyStatus    @default(AVAILABLE)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  bookId           String
+  branchId         String?
+  borrows          Borrow[]
+  book             Book          @relation(fields: [bookId], references: [id])
+  branch           Branch?       @relation(fields: [branchId], references: [id])
+  heldReservations Reservation[]
+}
+
+model Borrow {
+  id         String       @id @default(cuid())
+  userId     String
+  borrowDate DateTime     @default(now())
+  dueDate    DateTime
+  returnDate DateTime?
+  status     BorrowStatus
+  createdAt  DateTime     @default(now())
+  copyId     String
+  copy       Copy         @relation(fields: [copyId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+  fine       Fine?
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String
+  expiresAt DateTime
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Branch {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  copies    Copy[]
+}
+
+model LibrarySettings {
+  id              String   @id @default("default")
+  dailyFineRate   Decimal  @default(0.50) @db.Decimal(10, 2)
+  gracePeriodDays Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model Fine {
+  id           String     @id @default(cuid())
+  amount       Decimal    @db.Decimal(10, 2)
+  status       FineStatus @default(PENDING)
+  calculatedAt DateTime   @default(now())
+  paidAt       DateTime?
+  borrowId     String     @unique
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  borrow       Borrow     @relation(fields: [borrowId], references: [id])
+}
+
+model Reservation {
+  id              String            @id @default(cuid())
+  status          ReservationStatus @default(WAITING)
+  reservedAt      DateTime          @default(now())
+  expiryDate      DateTime?
+  userId          String
+  bookId          String
+  createdAt       DateTime          @default(now())
+  fulfilledCopyId String?
+  book            Book              @relation(fields: [bookId], references: [id])
+  fulfilledCopy   Copy?             @relation(fields: [fulfilledCopyId], references: [id])
+  user            User              @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id           String              @id @default(cuid())
+  type         NotificationType
+  channel      NotificationChannel @default(EMAIL)
+  status       NotificationStatus  @default(QUEUED)
+  sentAt       DateTime?
+  errorMessage String?
+  userId       String
+  createdAt    DateTime            @default(now())
+  user         User                @relation(fields: [userId], references: [id])
+}
+
+enum CopyCondition {
+  NEW
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+}
+
+enum CopyStatus {
+  AVAILABLE
+  CHECKED_OUT
+  RESERVED
+  IN_TRANSIT
+  WITHDRAWN
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  LIBRARIAN
+}
+
+enum BorrowStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}
+
+enum FineStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum ReservationStatus {
+  WAITING
+  FULFILLED
+  EXPIRED
+  CANCELLED
+  COMPLETED
+}
+
+enum NotificationType {
+  DUE_REMINDER
+  OVERDUE_ALERT
+  HOLD_READY
+}
+
+enum NotificationChannel {
+  EMAIL
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
