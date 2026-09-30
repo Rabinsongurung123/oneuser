@@ -12,11 +12,6 @@ build/
 out/
 /src/generated/prisma
 
-# AI Assistant Tool Folders & Configurations
-.agents/
-.claude/
-.windsurf/
-
 # Logs & Runtime Data
 logs
 *.log
