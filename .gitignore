@@ -43,6 +43,7 @@ Thumbs.db
 *.pem
 .vercel
 skills-lock.json
+.logs/
 
 # local embedded postgres data + backend reference clone
 .pgdata/
