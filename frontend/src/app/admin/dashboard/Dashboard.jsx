@@ -4,8 +4,8 @@ import {
   BookOpen, RefreshCw, AlertTriangle, CircleDollarSign
 } from "lucide-react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer
 } from "recharts";
 import StatCard from "@/components/ui-lib/StatCard";
 import Card from "@/components/ui-lib/Card";
@@ -15,16 +15,12 @@ import SignOutButton from "@/components/ui-lib/SignOutButton";
 import WelcomeToast from "@/components/ui-lib/WelcomeToast";
 import { C } from "@/components/ui-lib/theme";
 import { useApiData } from "@/components/ui-lib/useApiData";
-import {
-  circulationTrend, genreSplit, branchLoad, recentActivity as mockActivity
-} from "@/lib/mock-data";
-import { getDashboardStats, listFines, activityToUi } from "@/lib/backend";
-
-const genreColors = [C.stamp, C.brass, C.sage, C.ink, C.slateMute];
+import { recentActivity as mockActivity } from "@/lib/mock-data";
+import { getDashboardStats, listFines, listLoans, activityToUi } from "@/lib/backend";
 
 async function loadDashboard() {
-  const [stats, fines] = await Promise.all([getDashboardStats(), listFines()]);
-  return { stats, fines };
+  const [stats, fines, loans] = await Promise.all([getDashboardStats(), listFines(), listLoans()]);
+  return { stats, fines, loans };
 }
 
 export default function Dashboard() {
@@ -36,18 +32,27 @@ export default function Dashboard() {
       recentBorrowActivity: mockActivity,
     },
     fines: [],
+    loans: [],
   });
 
   const stats = data?.stats || {};
   const fines = data?.fines || [];
+  const loans = data?.loans || [];
   const collected = fines
     .filter((f) => f.status === "Paid")
     .reduce((s, f) => s + f.amount, 0);
   const activity = (stats.recentBorrowActivity || []).slice(0, 5).map(activityToUi);
 
+  // Loan-status breakdown — computed from real borrow history (GET /borrow)
+  const statusData = [
+    { name: "On time", value: loans.filter((l) => l.status === "On time").length },
+    { name: "Overdue", value: loans.filter((l) => l.status === "Overdue").length },
+    { name: "Returned", value: loans.filter((l) => l.status === "Returned").length },
+  ].filter((d) => d.value > 0);
+
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="System-wide overview across all branches — updated just now." action={<SignOutButton />} />
+      <PageHeader title="Dashboard" subtitle="System-wide overview — updated just now." action={<SignOutButton />} />
       <WelcomeToast />
       {source === "mock" && <DemoBanner />}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -57,43 +62,21 @@ export default function Dashboard() {
         <StatCard label="Fines Collected" value={`$${collected.toFixed(2)}`} icon={CircleDollarSign} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <Card title="Circulation Trend" className="col-span-2">
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={circulationTrend}>
-              <CartesianGrid stroke={C.paperLine} vertical={false} />
-              <XAxis dataKey="m" tick={{ fontSize: 12, fill: C.slateMute }} axisLine={{ stroke: C.paperLine }} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: C.slateMute }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 6, border: `1px solid ${C.paperLine}`, fontSize: 12, fontFamily: "Inter" }} />
-              <Line type="monotone" dataKey="checkouts" stroke={C.stamp} strokeWidth={2} dot={false} name="Checkouts" />
-              <Line type="monotone" dataKey="returns" stroke={C.brass} strokeWidth={2} dot={false} name="Returns" />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card title="Catalog by Genre">
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={genreSplit} dataKey="value" nameKey="name" innerRadius={45} outerRadius={75} paddingAngle={2}>
-                {genreSplit.map((_, i) => <Cell key={i} fill={genreColors[i]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ borderRadius: 6, border: `1px solid ${C.paperLine}`, fontSize: 12, fontFamily: "Inter" }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
-
       <div className="grid grid-cols-3 gap-4">
-        <Card title="Branch Load (active loans)" className="col-span-2">
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={branchLoad}>
-              <CartesianGrid stroke={C.paperLine} vertical={false} />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: C.slateMute }} axisLine={{ stroke: C.paperLine }} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: C.slateMute }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 6, border: `1px solid ${C.paperLine}`, fontSize: 12, fontFamily: "Inter" }} />
-              <Bar dataKey="value" fill={C.ink} radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <Card title="Loans by Status" className="col-span-2">
+          {statusData.length === 0 ? (
+            <p className="f-body text-[12.5px]" style={{ color: C.slateMute }}>No loan activity yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={statusData}>
+                <CartesianGrid stroke={C.paperLine} vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: C.slateMute }} axisLine={{ stroke: C.paperLine }} tickLine={false} />
+                <YAxis tick={{ fontSize: 12, fill: C.slateMute }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ borderRadius: 6, border: `1px solid ${C.paperLine}`, fontSize: 12, fontFamily: "Inter" }} />
+                <Bar dataKey="value" name="Loans" fill={C.ink} radius={[3, 3, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </Card>
 
         <Card title="Recent Activity">

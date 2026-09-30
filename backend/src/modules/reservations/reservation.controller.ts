@@ -7,13 +7,15 @@ import { sendSuccess } from "../../utils/apiResponse";
 import { getPagination, buildMeta } from "../../utils/pagination";
 
 export const create = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { bookId } = createReservationSchema.parse(req.body);
-  const reservation = await reservationService.createReservation(req.user!.userId, bookId);
+  const { bookId, userId } = createReservationSchema.parse(req.body);
+  // Admins may create a reservation on behalf of a member
+  const effectiveUserId = req.user!.role === "ADMIN" && userId ? userId : req.user!.userId;
+  const reservation = await reservationService.createReservation(effectiveUserId, bookId);
   sendSuccess(res, reservation, 201);
 });
 
 export const cancel = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const reservation = await reservationService.cancelReservation(req.params.id as string, req.user!.userId);
+  const reservation = await reservationService.cancelReservation(req.params.id as string, req.user!.userId, req.user!.role === "ADMIN");
   sendSuccess(res, reservation);
 });
 

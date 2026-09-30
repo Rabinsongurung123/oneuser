@@ -14,7 +14,7 @@ const publicSelect = {
 
 export async function getAllStudents(search: string | undefined, skip: number, take: number) {
   const where = {
-    role: "STUDENT" as const,
+    role: "MEMBER" as const,
     ...(search && {
       OR: [
         { name: { contains: search, mode: "insensitive" as const } },
@@ -46,7 +46,7 @@ export async function createStudent(input: CreateStudentInput) {
 
   const hashedPassword = await bcrypt.hash(input.password, 10);
   return prisma.user.create({
-    data: { ...input, password: hashedPassword, role: "STUDENT" },
+    data: { ...input, password: hashedPassword, role: "MEMBER" },
     select: publicSelect,
   });
 }

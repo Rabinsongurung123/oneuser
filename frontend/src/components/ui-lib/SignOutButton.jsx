@@ -17,7 +17,7 @@ export default function SignOutButton() {
     try {
       await logout();
     } finally {
-      router.push("/guest/login?signedOut=1");
+      router.push("/login?signedOut=1");
     }
   };
 

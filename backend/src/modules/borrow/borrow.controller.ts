@@ -18,6 +18,12 @@ export const returnBook = asyncHandler(async (req: AuthRequest, res: Response) =
   sendSuccess(res, result);
 });
 
+export const renewBook = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { borrowId } = returnBookSchema.parse(req.body);
+  const result = await borrowService.renewBook(borrowId);
+  sendSuccess(res, result);
+});
+
 export const getAll = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { skip, take, page, perPage } = getPagination(req);
   const { records, total } = await borrowService.getAllBorrowRecords(skip, take);

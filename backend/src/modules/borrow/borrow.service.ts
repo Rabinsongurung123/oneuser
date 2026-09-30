@@ -89,6 +89,18 @@ export async function returnBook(borrowId: string) {
   return updatedBorrow;
 }
 
+export async function renewBook(borrowId: string) {
+  const borrow = await prisma.borrow.findUnique({ where: { id: borrowId } });
+  if (!borrow) throw ApiError.notFound(`Borrow record with id '${borrowId}' not found`);
+  if (borrow.status === "RETURNED") throw ApiError.conflict("Cannot renew a book that has already been returned");
+
+  // extend 14 days from the later of the current due date / now
+  const base = borrow.dueDate.getTime() > Date.now() ? borrow.dueDate : new Date();
+  const dueDate = new Date(base.getTime() + DEFAULT_LOAN_DAYS * 24 * 60 * 60 * 1000);
+
+  return prisma.borrow.update({ where: { id: borrowId }, data: { dueDate, status: "BORROWED" } });
+}
+
 export async function getAllBorrowRecords(skip: number, take: number) {
   const [records, total] = await Promise.all([
     prisma.borrow.findMany({

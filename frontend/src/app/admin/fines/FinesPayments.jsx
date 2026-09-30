@@ -11,7 +11,7 @@ import DemoBanner from "@/components/ui-lib/DemoBanner";
 import { useToast } from "@/components/ui-lib/Toast";
 import { useApiData } from "@/components/ui-lib/useApiData";
 import { fines as mockFines } from "@/lib/mock-data";
-import { listFines, waiveFine } from "@/lib/backend";
+import { listFines, waiveFine, payFine } from "@/lib/backend";
 
 const statusOptions = ["All", "Unpaid", "Paid", "Waived"];
 
@@ -22,6 +22,16 @@ export default function FinesPayments() {
   const showToast = useToast();
 
   const rows = fines || [];
+
+  const markPaid = async (fine) => {
+    try {
+      await payFine(fine.id);
+      await reload();
+      showToast(`$${fine.amount.toFixed(2)} marked as paid`, "sage");
+    } catch (err) {
+      showToast(err.message || "Could not mark fine as paid", "stamp");
+    }
+  };
 
   const waive = async (fine) => {
     try {
@@ -63,14 +73,22 @@ export default function FinesPayments() {
             <span key="a" className="f-mono">${f.amount.toFixed(2)}</span>,
             <Badge key="s" tone={f.status === "Paid" ? "sage" : f.status === "Waived" ? "brass" : "stamp"}>{f.status}</Badge>,
             f.status === "Unpaid" && (
-              <button
-                key="btn"
-                onClick={() => waive(f)}
-                className="f-body text-[12px] px-2.5 py-1 rounded cursor-pointer"
-                style={{ background: C.brassSoft, color: "#8A6A2E" }}
-              >
-                Waive
-              </button>
+              <div key="btn" className="flex gap-1.5">
+                <button
+                  onClick={() => markPaid(f)}
+                  className="f-body text-[12px] px-2.5 py-1 rounded cursor-pointer"
+                  style={{ background: C.sageSoft, color: C.sage }}
+                >
+                  Pay
+                </button>
+                <button
+                  onClick={() => waive(f)}
+                  className="f-body text-[12px] px-2.5 py-1 rounded cursor-pointer"
+                  style={{ background: C.brassSoft, color: "#8A6A2E" }}
+                >
+                  Waive
+                </button>
+              </div>
             ),
           ])}
           emptyMessage="No fines match your search."

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/ui-lib/Sidebar";
 import TopBar from "@/components/ui-lib/TopBar";
 import { fontStyles, C } from "@/components/ui-lib/theme";
@@ -11,11 +12,20 @@ import { NAV } from "./nav";
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
-  const { user, initials } = useAuth();
+  const router = useRouter();
+  const { user, initials, hydrated } = useAuth();
   const segments = pathname.split("/").filter(Boolean);
   // e.g. /admin/users -> users ; /admin -> dashboard
   const active = segments[1] || "dashboard";
   const activeNav = NAV.find((n) => n.key === active);
+
+  // Client-side role guard: the proxy only checks for a cookie, so a signed-in
+  // MEMBER/LIBRARIAN token would still render admin pages. Boot them to /login.
+  useEffect(() => {
+    if (hydrated && (!user || user.role !== "ADMIN")) {
+      router.replace("/login");
+    }
+  }, [hydrated, user, router]);
 
   return (
     <ToastProvider>

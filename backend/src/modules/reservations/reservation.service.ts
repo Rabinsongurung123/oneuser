@@ -15,10 +15,10 @@ export async function createReservation(userId: string, bookId: string) {
   return prisma.reservation.create({ data: { userId, bookId, status: "WAITING" } });
 }
 
-export async function cancelReservation(id: string, userId: string) {
+export async function cancelReservation(id: string, userId: string, isAdmin = false) {
   const reservation = await prisma.reservation.findUnique({ where: { id } });
   if (!reservation) throw ApiError.notFound(`Reservation with id '${id}' not found`);
-  if (reservation.userId !== userId) throw ApiError.forbidden("This is not your reservation");
+  if (!isAdmin && reservation.userId !== userId) throw ApiError.forbidden("This is not your reservation");
   if (reservation.status !== "WAITING") {
     throw ApiError.conflict("Only a waiting reservation can be cancelled");
   }

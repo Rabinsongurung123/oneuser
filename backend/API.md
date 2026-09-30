@@ -111,6 +111,7 @@ All authenticated endpoints require the `Authorization: Bearer <token>` header.
 |--------|----------|------|------|
 | POST | `/borrow` | ✅ | Any |
 | POST | `/borrow/return` | ✅ | Any |
+| POST | `/borrow/renew` | ✅ | Any |
 | GET | `/borrow` | ✅ | ADMIN |
 | GET | `/borrow/student/:id/history` | ✅ | Any |
 | GET | `/borrow/student/:id/current` | ✅ | Any |
@@ -132,10 +133,20 @@ All authenticated endpoints require the `Authorization: Bearer <token>` header.
 
 | Method | Endpoint | Auth | Role |
 |--------|----------|------|------|
-| POST | `/reservation` | ✅ | Any |
+| POST | `/reservation` (admins may pass `userId` to reserve on behalf of a member) | ✅ | Any |
 | GET | `/reservation/me` | ✅ | Any |
 | PATCH | `/reservation/:id/cancel` | ✅ | Any |
 | GET | `/reservation` | ✅ | ADMIN |
+
+---
+
+## Notifications
+
+| Method | Endpoint | Auth | Role |
+|--------|----------|------|------|
+| GET | `/notifications/me` | ✅ | Any |
+| GET | `/notifications` | ✅ | ADMIN |
+| POST | `/notifications/test` | ✅ | ADMIN |
 
 ---
 

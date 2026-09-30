@@ -9,7 +9,7 @@ export async function getDashboardStats() {
     overdueBooks,
     recentBorrows,
   ] = await Promise.all([
-    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.user.count({ where: { role: "MEMBER" } }),
     prisma.book.count(),
     prisma.borrow.count({ where: { status: "BORROWED" } }),
     prisma.copy.count({ where: { status: "AVAILABLE" } }),

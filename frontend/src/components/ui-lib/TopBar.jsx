@@ -26,7 +26,7 @@ export default function TopBar({ title, subtitle, userLabel = "Admin", userIniti
     try {
       await logout();
     } finally {
-      router.push("/guest/login?signedOut=1");
+      router.push("/login?signedOut=1");
     }
   };
 

@@ -1,7 +1,9 @@
 // Service layer for the Library_Management_System backend.
 // Returns UI-shaped data; throws on failure so callers can fall back to demo data.
 
-import api from "./api";
+import api, { getStoredToken } from "./api";
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 const DATE = (d) => (d ? String(d).slice(0, 10) : null);
 const money = (n) => Number(n ?? 0);
@@ -184,9 +186,7 @@ export async function returnLoan(borrowId) {
 }
 
 export async function renewLoan(borrowId) {
-  // NOTE: POST /borrow/renew does not exist in the GitHub backend repo.
-  // This call will fail until the backend adds the endpoint.
-  // Callers fall back to mock behaviour via LoansContext when the API throws.
+  // POST /borrow/renew — extends the due date by 14 days.
   await api("/borrow/renew", { method: "POST", body: { borrowId } });
 }
 
@@ -305,8 +305,10 @@ export async function listMyReservations() {
   return withQueuePositions(res.data || []);
 }
 
-export async function createReservation(bookId) {
-  return (await api("/reservation", { method: "POST", body: { bookId } })).data;
+export async function createReservation(bookId, userId) {
+  // Admins may reserve on behalf of a member by passing userId (mirrors borrow).
+  const body = userId ? { bookId, userId } : { bookId };
+  return (await api("/reservation", { method: "POST", body })).data;
 }
 
 export async function cancelReservation(id) {
@@ -408,6 +410,45 @@ export async function deletePublisher(id) {
   await api(`/publishers/${id}`, { method: "DELETE" });
 }
 
+// ---------------------------------------------------------------- copies
+
+/** Map a backend Copy record to a flat UI row. */
+export function copyToUi(c) {
+  return {
+    id: c.id,
+    bookId: c.bookId,
+    bookTitle: c.book?.title || "—",
+    barcode: c.barcode,
+    condition: c.condition || "GOOD",
+    shelfLocation: c.shelfLocation || "—",
+    status: c.status || "AVAILABLE",
+  };
+}
+
+/** GET /copies/book/:bookId — all copies of one book */
+export async function listCopiesForBook(bookId) {
+  const res = await api(`/copies/book/${encodeURIComponent(bookId)}`);
+  return (res.data || []).map(copyToUi);
+}
+
+/** POST /copies — { bookId, barcode, condition?, shelfLocation? } */
+export async function createCopy({ bookId, barcode, condition, shelfLocation }) {
+  const body = { bookId, barcode };
+  if (condition) body.condition = condition;
+  if (shelfLocation) body.shelfLocation = shelfLocation;
+  return (await api("/copies", { method: "POST", body })).data;
+}
+
+/** PATCH /copies/:id — { condition?, shelfLocation?, status? } */
+export async function updateCopy(id, patch) {
+  return (await api(`/copies/${id}`, { method: "PATCH", body: patch })).data;
+}
+
+/** DELETE /copies/:id */
+export async function deleteCopy(id) {
+  await api(`/copies/${id}`, { method: "DELETE" });
+}
+
 // ---------------------------------------------------------------- book update
 
 export async function updateBook(id, { title, isbn, description, genre, author }) {
@@ -426,6 +467,39 @@ export async function updateBook(id, { title, isbn, description, genre, author }
   }
 
   return (await api(`/books/${id}`, { method: "PATCH", body: patch })).data;
+}
+
+/** POST /books/:id/cover — multipart image upload (JPEG/PNG/WEBP, max 5MB) */
+export async function uploadBookCover(bookId, file) {
+  const headers = {};
+  const authToken = getStoredToken();
+  if (authToken) headers.Authorization = `Bearer ${authToken}`;
+
+  const form = new FormData();
+  form.append("cover", file);
+
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}/books/${encodeURIComponent(bookId)}/cover`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+  } catch {
+    throw new Error("Network error — is the backend server running?");
+  }
+
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const message =
+      json?.error?.message ||
+      json?.message ||
+      `Cover upload failed (${res.status})`;
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+  return json?.data || {};
 }
 
 // ---------------------------------------------------------------- settings
@@ -504,4 +578,36 @@ export function activityToUi(a) {
     time: DATE(a.borrowDate) || "",
     type: a.status === "OVERDUE" ? "alert" : "checkout",
   };
+}
+
+// ---------------------------------------------------------------- notifications
+
+function notificationToUi(n) {
+  return {
+    id: n.id,
+    type: n.type || "—",
+    channel: n.channel || "EMAIL",
+    status: n.status || "—",
+    sentAt: DATE(n.sentAt),
+    createdAt: DATE(n.createdAt),
+    user: n.user ? { id: n.user.id, name: n.user.name, email: n.user.email } : null,
+  };
+}
+
+/** GET /notifications/me — current user's notification history */
+export async function listMyNotifications() {
+  const res = await api("/notifications/me?per_page=100");
+  return (res.data || []).map(notificationToUi);
+}
+
+/** GET /notifications — all notifications (ADMIN only) */
+export async function listAllNotifications() {
+  const res = await api("/notifications?per_page=100");
+  return (res.data || []).map(notificationToUi);
+}
+
+/** POST /notifications/test — send a test email (ADMIN only) */
+export async function sendTestEmail({ to, subject, message }) {
+  const res = await api("/notifications/test", { method: "POST", body: { to, subject, message } });
+  return res.data || {};
 }

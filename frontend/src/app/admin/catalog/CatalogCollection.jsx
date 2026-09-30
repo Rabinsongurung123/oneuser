@@ -14,7 +14,7 @@ import DemoBanner from "@/components/ui-lib/DemoBanner";
 import { useToast } from "@/components/ui-lib/Toast";
 import { useApiData } from "@/components/ui-lib/useApiData";
 import { catalog as mockCatalog } from "@/lib/mock-data";
-import { listBooks, searchBooks, listBooksByCategory, createBook, updateBook, deleteBook } from "@/lib/backend";
+import { listBooks, searchBooks, listBooksByCategory, createBook, updateBook, deleteBook, uploadBookCover } from "@/lib/backend";
 
 const genreOptions = ["Fiction", "Sci-Fi", "Non-fiction", "Children's", "Reference"];
 const emptyForm = { call: "", title: "", author: "", genre: "Fiction", copies: "1", available: "1" };
@@ -36,6 +36,8 @@ export default function CatalogCollection() {
   const [errors, setErrors] = useState({});
   const [confirmRemove, setConfirmRemove] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverKey, setCoverKey] = useState(0); // bumps to refresh the preview after upload
   const showToast = useToast();
 
   const rows = catalog || [];
@@ -113,6 +115,22 @@ export default function CatalogCollection() {
       showToast(err.message || "Could not save title", "stamp");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-picking the same file
+    if (!file || !editItem) return;
+    setCoverBusy(true);
+    try {
+      await uploadBookCover(editItem.id, file);
+      setCoverKey((k) => k + 1);
+      showToast("Cover updated", "sage");
+    } catch (err) {
+      showToast(err.message || "Could not upload cover", "stamp");
+    } finally {
+      setCoverBusy(false);
     }
   };
 
@@ -205,6 +223,35 @@ export default function CatalogCollection() {
               ))}
             </select>
           </div>
+          {editItem && (
+            <div>
+              <label className="f-body text-[12.5px] font-medium block mb-1.5" style={{ color: C.slate }}>Book cover</label>
+              <div className="flex items-center gap-3">
+                <img
+                  key={coverKey}
+                  src={`/api/books/${encodeURIComponent(editItem.id)}/cover?v=${coverKey}`}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  onLoad={(e) => { e.currentTarget.style.display = ""; }}
+                  alt=""
+                  className="w-14 h-20 object-cover rounded"
+                  style={{ border: `1px solid ${C.paperLine}` }}
+                />
+                <div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleCoverChange}
+                    disabled={coverBusy}
+                    className="f-body text-[12.5px]"
+                    style={{ color: C.slate }}
+                  />
+                  <p className="f-body text-[11px] mt-1" style={{ color: C.slateMute }}>
+                    {coverBusy ? "Uploading…" : "JPEG, PNG or WEBP · max 5MB"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           {!editItem && (
           <div className="grid grid-cols-2 gap-3">
             <div>

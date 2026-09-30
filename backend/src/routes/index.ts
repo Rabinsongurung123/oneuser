@@ -11,6 +11,7 @@ import authorRoutes from "../modules/authors/author.routes";
 import publisherRoutes from "../modules/publishers/publisher.routes";
 import reservationRoutes from "../modules/reservations/reservation.routes";
 import settingsRoutes from "../modules/settings/settings.routes";
+import notificationRoutes from "../modules/notifications/notification.routes";
 
 const router = Router();
 
@@ -37,6 +38,7 @@ router.use("/copies", copiesRoutes);
 router.use("/fines", finesRoutes);
 router.use("/reservation", reservationRoutes);
 router.use("/settings", settingsRoutes);
+router.use("/notifications", notificationRoutes);
 
 
 export default router;

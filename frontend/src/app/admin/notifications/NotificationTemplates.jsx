@@ -3,53 +3,94 @@
 import { useState } from "react";
 import PageHeader from "@/components/ui-lib/PageHeader";
 import Card from "@/components/ui-lib/Card";
-import { C } from "@/components/ui-lib/theme";
+import Table from "@/components/ui-lib/Table";
+import Badge from "@/components/ui-lib/Badge";
+import DemoBanner from "@/components/ui-lib/DemoBanner";
 import { useToast } from "@/components/ui-lib/Toast";
-import { notifTemplates } from "@/lib/mock-data";
+import { useApiData } from "@/components/ui-lib/useApiData";
+import { listAllNotifications } from "@/lib/backend";
+import { C } from "@/components/ui-lib/theme";
+
+const MOCK_NOTIFICATIONS = [
+  { id: "1", type: "DUE_REMINDER",  channel: "EMAIL", status: "SENT",   sentAt: "2026-09-20", createdAt: "2026-09-20", user: { name: "Alice M.", email: "alice@example.com" } },
+  { id: "2", type: "OVERDUE_ALERT", channel: "EMAIL", status: "SENT",   sentAt: "2026-09-18", createdAt: "2026-09-18", user: { name: "Bob K.",   email: "bob@example.com"   } },
+  { id: "3", type: "HOLD_READY",    channel: "EMAIL", status: "FAILED",  sentAt: null,         createdAt: "2026-09-15", user: { name: "Carol T.", email: "carol@example.com" } },
+];
+
+const TYPE_LABELS = {
+  DUE_REMINDER: "Due Reminder",
+  OVERDUE_ALERT: "Overdue Alert",
+  HOLD_READY: "Hold Ready",
+};
+
+const STATUS_TONE = {
+  SENT: "sage",
+  FAILED: "stamp",
+  QUEUED: "brass",
+};
+
+function Field({ label, value, onChange, type = "text", placeholder = "" }) {
+  return (
+    <div>
+      <label className="f-body text-[12.5px] font-medium block mb-1.5" style={{ color: C.slate }}>
+        {label}
+      </label>
+      {type === "textarea" ? (
+        <textarea
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          rows={3}
+          className="w-full px-3 py-2 rounded-md f-body text-[13px] outline-none resize-none"
+          style={{ background: C.paper, border: `1px solid ${C.paperLine}`, color: C.slate }}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 rounded-md f-body text-[13px] outline-none"
+          style={{ background: C.paper, border: `1px solid ${C.paperLine}`, color: C.slate }}
+        />
+      )}
+    </div>
+  );
+}
 
 export default function NotificationTemplates() {
-  const [templates, setTemplates] = useState(notifTemplates);
-  const showToast = useToast();
+  const { data: notifications, source } = useApiData(listAllNotifications, MOCK_NOTIFICATIONS);
 
-  const toggle = (name) => {
-    setTemplates((prev) =>
-      prev.map((n) => (n.name === name ? { ...n, enabled: !n.enabled } : n))
-    );
-    const tpl = templates.find((n) => n.name === name);
-    const next = tpl ? !tpl.enabled : true;
-    showToast(next ? `${name} enabled` : `${name} disabled`, next ? "sage" : "slate");
-  };
+  const rows = notifications || [];
 
   return (
     <>
-      <PageHeader title="Notifications" subtitle="System notification templates and triggers." />
-      <div
-        className="px-4 py-3 rounded-md f-body text-[12.5px] mb-4"
-        style={{ background: C.brassSoft, color: "#8A6A2E", border: `1px solid #DEC88A` }}
-      >
-        No backend API for notifications — toggles are saved locally and will reset on refresh.
-      </div>
-      <Card>
-        <div className="divide-y" style={{ borderColor: C.paperLine }}>
-          {templates.map((n) => (
-            <div key={n.name} className="flex items-center justify-between py-3.5" style={{ borderColor: C.paperLine }}>
-              <div>
-                <p className="f-body text-[13.5px] font-medium" style={{ color: C.slate }}>{n.name}</p>
-                <p className="f-body text-[12px]" style={{ color: C.slateMute }}>{n.trigger}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggle(n.name)}
-                className="w-9 h-5 rounded-full relative cursor-pointer transition-colors"
-                style={{ background: n.enabled ? C.sage : "#DADFE6" }}
-                aria-pressed={n.enabled}
-                aria-label={`Toggle ${n.name}`}
-              >
-                <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all" style={{ left: n.enabled ? 18 : 2 }} />
-              </button>
-            </div>
-          ))}
-        </div>
+      <PageHeader title="Notifications" subtitle="System notification history." />
+      {source === "mock" && <DemoBanner />}
+
+      {/* All notifications log */}
+      <Card title="Notification Log">
+        <Table
+          columns={["Member", "Type", "Channel", "Status", "Date"]}
+          rows={rows.map((n) => [
+            <span key="user" className="f-body text-[13px] font-medium" style={{ color: C.slate }}>
+              {n.user?.name || "—"}
+            </span>,
+            <span key="type" className="f-body text-[12.5px]" style={{ color: C.slate }}>
+              {TYPE_LABELS[n.type] || n.type}
+            </span>,
+            <span key="channel" className="f-body text-[12.5px]" style={{ color: C.slateMute }}>
+              {n.channel}
+            </span>,
+            <Badge key="status" tone={STATUS_TONE[n.status] || "slate"}>
+              {n.status}
+            </Badge>,
+            <span key="date" className="f-body text-[12.5px]" style={{ color: C.slateMute }}>
+              {n.sentAt || n.createdAt || "—"}
+            </span>,
+          ])}
+          emptyMessage="No notifications have been sent yet."
+        />
       </Card>
     </>
   );

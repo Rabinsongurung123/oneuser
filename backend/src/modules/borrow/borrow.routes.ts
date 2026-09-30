@@ -7,6 +7,7 @@ const router = Router();
 
 router.post("/", authenticate, borrowController.borrow);
 router.post("/return", authenticate, borrowController.returnBook);
+router.post("/renew", authenticate, borrowController.renewBook);
 router.get("/", authenticate, requireRole("ADMIN"), borrowController.getAll);
 router.get("/student/:id/history", authenticate, borrowController.getStudentHistory);
 router.get("/student/:id/current", authenticate, borrowController.getCurrentBorrowedBook);

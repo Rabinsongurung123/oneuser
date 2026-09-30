@@ -38,3 +38,7 @@ Thumbs.db
 # misc
 *.pem
 .vercel
+
+# local embedded postgres data + backend reference clone
+.pgdata/
+.real-backend/
