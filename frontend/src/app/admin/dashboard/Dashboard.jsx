@@ -3,10 +3,6 @@
 import {
   BookOpen, RefreshCw, AlertTriangle, CircleDollarSign
 } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
-} from "recharts";
 import StatCard from "@/components/ui-lib/StatCard";
 import Card from "@/components/ui-lib/Card";
 import PageHeader from "@/components/ui-lib/PageHeader";
@@ -16,11 +12,11 @@ import WelcomeToast from "@/components/ui-lib/WelcomeToast";
 import { C } from "@/components/ui-lib/theme";
 import { useApiData } from "@/components/ui-lib/useApiData";
 import { recentActivity as mockActivity } from "@/lib/mock-data";
-import { getDashboardStats, listFines, listLoans, activityToUi } from "@/lib/backend";
+import { getDashboardStats, listFines, activityToUi } from "@/lib/backend";
 
 async function loadDashboard() {
-  const [stats, fines, loans] = await Promise.all([getDashboardStats(), listFines(), listLoans()]);
-  return { stats, fines, loans };
+  const [stats, fines] = await Promise.all([getDashboardStats(), listFines()]);
+  return { stats, fines };
 }
 
 export default function Dashboard() {
@@ -32,23 +28,14 @@ export default function Dashboard() {
       recentBorrowActivity: mockActivity,
     },
     fines: [],
-    loans: [],
   });
 
   const stats = data?.stats || {};
   const fines = data?.fines || [];
-  const loans = data?.loans || [];
   const collected = fines
     .filter((f) => f.status === "Paid")
     .reduce((s, f) => s + f.amount, 0);
   const activity = (stats.recentBorrowActivity || []).slice(0, 5).map(activityToUi);
-
-  // Loan-status breakdown — computed from real borrow history (GET /borrow)
-  const statusData = [
-    { name: "On time", value: loans.filter((l) => l.status === "On time").length },
-    { name: "Overdue", value: loans.filter((l) => l.status === "Overdue").length },
-    { name: "Returned", value: loans.filter((l) => l.status === "Returned").length },
-  ].filter((d) => d.value > 0);
 
   return (
     <>
@@ -62,41 +49,23 @@ export default function Dashboard() {
         <StatCard label="Fines Collected" value={`$${collected.toFixed(2)}`} icon={CircleDollarSign} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card title="Loans by Status" className="col-span-2">
-          {statusData.length === 0 ? (
-            <p className="f-body text-[12.5px]" style={{ color: C.slateMute }}>No loan activity yet.</p>
+      <Card title="Recent Activity">
+        <div className="space-y-3">
+          {activity.length === 0 ? (
+            <p className="f-body text-[12.5px]" style={{ color: C.slateMute }}>No recent activity.</p>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={statusData}>
-                <CartesianGrid stroke={C.paperLine} vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: C.slateMute }} axisLine={{ stroke: C.paperLine }} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: C.slateMute }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ borderRadius: 6, border: `1px solid ${C.paperLine}`, fontSize: 12, fontFamily: "Inter" }} />
-                <Bar dataKey="value" name="Loans" fill={C.ink} radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            activity.map((a, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: a.type === "alert" ? C.stamp : C.brass }} />
+                <p className="f-body text-[12.5px] leading-snug" style={{ color: C.slate }}>
+                  <span className="font-medium">{a.who}</span> {a.action} <span style={{ color: C.slateMute }}>{a.what}</span>
+                  <span className="block text-[11px] mt-0.5" style={{ color: C.slateMute }}>{a.time}</span>
+                </p>
+              </div>
+            ))
           )}
-        </Card>
-
-        <Card title="Recent Activity">
-          <div className="space-y-3">
-            {activity.length === 0 ? (
-              <p className="f-body text-[12.5px]" style={{ color: C.slateMute }}>No recent activity.</p>
-            ) : (
-              activity.map((a, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: a.type === "alert" ? C.stamp : C.brass }} />
-                  <p className="f-body text-[12.5px] leading-snug" style={{ color: C.slate }}>
-                    <span className="font-medium">{a.who}</span> {a.action} <span style={{ color: C.slateMute }}>{a.what}</span>
-                    <span className="block text-[11px] mt-0.5" style={{ color: C.slateMute }}>{a.time}</span>
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </>
   );
 }

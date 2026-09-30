@@ -6,7 +6,7 @@ _Last updated: 2026-09-30. Open items live in the three TODO sections below; eve
 
 Single-admin app. Next.js 16 + custom `ui-lib` components on :3000. Login lives at **`/login`** (admin-only — any non-admin login is signed straight back out with an "Access restricted" message). Root `/` redirects to `/admin/dashboard`; the proxy (`src/proxy.ts`) bounces unauthenticated `/admin/*` requests to `/login?next=…`, and the admin layout adds a client-side role guard (the proxy only sees the session cookie, not the role).
 
-**Routes (17):** `/admin/dashboard`, `users`, `catalog`, `copies`, `categories`, `authors`, `publishers`, `inventory`, `circulation`, `fines`, `reservations`, `notifications`, `reports`, `audit`, `settings`, plus `/login`. Roles & Permissions and Branches were deleted on 2026-09-30 (single admin; no backend endpoint for branches).
+**Routes (16):** `/admin/dashboard`, `users`, `catalog`, `copies`, `categories`, `authors`, `publishers`, `inventory`, `circulation`, `fines`, `reservations`, `notifications`, `audit`, `settings`, plus `/login`. Roles & Permissions, Branches, and Reports were deleted on 2026-09-30 (single admin; no backend endpoints; smaller real system > bigger fake one). Dashboard keeps the four live stat cards + Recent Activity; charts removed (`recharts` dependency dropped).
 
 ## Environment (how to run everything)
 
@@ -27,7 +27,7 @@ Single-admin app. Next.js 16 + custom `ui-lib` components on :3000. Login lives 
 ## TODO — frontend
 
 - [x] Book cover upload UI — button + preview added to the catalog edit dialog (2026-09-30)
-- [x] Reports & dashboard charts wired to real endpoint data (2026-09-30): CSV exports from /borrow + /fines + /books; loans-by-status chart from /borrow; mock genre/branch/circulation-trend charts removed
+- [x] Reports page and dashboard charts removed entirely (2026-09-30, superseding the same-day CSV rewire) — decision: everything visible must be real; `recharts` uninstalled. If rebuilt later, use real endpoints (e.g. borrows/month, fines collected)
 - [ ] README with setup steps, env vars (`NEXT_PUBLIC_API_URL`), and admin credentials for delivery
 - [ ] Empty states / validation pass on every page before delivery; seed realistic demo data if this is for a demo
 

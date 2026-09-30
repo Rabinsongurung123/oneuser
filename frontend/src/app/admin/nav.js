@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, BookOpen, Boxes,
-  RefreshCw, CircleDollarSign, BookMarked, Bell, FileBarChart2,
+  RefreshCw, CircleDollarSign, BookMarked, Bell,
   ScrollText, Settings, Tags, PenLine, Building, Package
 } from "lucide-react";
 
@@ -17,7 +17,6 @@ export const NAV = [
   { key: "fines", label: "Fines & Payments", icon: CircleDollarSign },
   { key: "reservations", label: "Reservations", icon: BookMarked },
   { key: "notifications", label: "Notifications", icon: Bell },
-  { key: "reports", label: "Reports", icon: FileBarChart2 },
   { key: "audit", label: "Audit Logs", icon: ScrollText },
   { key: "settings", label: "Settings", icon: Settings },
 ];
